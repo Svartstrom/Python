@@ -1,24 +1,20 @@
-from openpyxl import load_workbook
+# coding=utf-8
+
 from collections import deque
 import glob
 import sqlite3
 import os
+from openpyxl import load_workbook
 
-import threading
-
-
-que1 = deque([['GET_ALL']])
-que1 = deque([[]])
-que1 = deque([[]])
 
 # SELECT count(*) FROM sqlite_master WHERE type='table' AND name='table_name';
-def createDatabase():
-	db_ = sqlite3.connect("ekonomen.db")
+def createDatabase(DBname):
+	db_ = sqlite3.connect(DBname)
 	db  = db_.cursor()
 	db.execute("""CREATE TABLE 'companies'('symbol' TEXT PRIMARY KEY UNIQUE, 
-											'datum' DATE, 'list' TEXT, 'sector' TEXT, 'branch' TEXT, 'direktavkastning' INTEGER, 'pe' INTEGER, 'ps' INTEGER, 'pb' INTEGER);""")
+		      'datum' DATE, 'list' TEXT, 'sector' TEXT, 'branch' TEXT, 'direktavkastning' INTEGER, 'pe' INTEGER, 'ps' INTEGER, 'pb' INTEGER);""")
 	db.execute("""CREATE TABLE 'transactions'(	'id' INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE, 
-											'symbol' TEXT, 'datum' DATE, 'openprice' INTEGER,'highprice'INTEGER,'lowprice'INTEGER, 'closeprice' INTEGER,'volume'INTEGER );""")
+                      'symbol' TEXT, 'datum' DATE, 'openprice' INTEGER,'highprice'INTEGER,'lowprice'INTEGER, 'closeprice' INTEGER,'volume'INTEGER );""")
 	return db_
 
 def readFromXLSX(db,ORGname,ij,max_ant):
@@ -33,8 +29,8 @@ def readFromXLSX(db,ORGname,ij,max_ant):
 	if name[0] == 'Borsdata':
 		print("%s - %d out of of %d"%(name[0],ij,max_ant))
 		input_date = str(name[1])+"-"+str(name[2])+"-"+str(name[3])
-		#Bolagsnamn	Info	Info	Info	Info	Info	Info		Info	Kursutveck.		Direktav.	P/E		P/S		P/B		Aktiekurs
-		#			Land	Lista	Sektor	Bransch	Ticker	Instrument	Rapport	Utveck.  1 år	Senaste		Senaste	Senaste	Senaste	Senaste
+                #Bolagsnamn	Info	Info	Info	Info	Info	Info		Info	Kursutveck.	Direktav.	P/E	P/S	P/B	Aktiekurs
+		#		Land	Lista	Sektor	Bransch	Ticker	Instrument	Rapport	Utveck.  1 år	Senaste		Senaste	Senaste	Senaste	Senaste
 		for ii in range(3, ws.max_row):
 			name = [ws.cell(row = ii, column = 6).value]
 			
@@ -42,7 +38,7 @@ def readFromXLSX(db,ORGname,ij,max_ant):
 			temp = db.execute("SELECT * FROM companies WHERE symbol=? ",(name[0],))
 			tt = temp.fetchall()
 			
-				#print(input_date)
+			#print(input_date)
 			lista   = ws.cell(row=ii, column = 3).value
 			sector  = ws.cell(row=ii, column = 4).value
 			branch  = ws.cell(row=ii, column = 5).value
@@ -52,18 +48,19 @@ def readFromXLSX(db,ORGname,ij,max_ant):
 			pb = ws.cell(row=ii, column = 13).value
 				
 			if len(tt) < 1:
-				resp = db.execute("""INSERT INTO companies (symbol,  datum,		 list,  sector, branch, direktavkastning, pe, ps, pb) 
-							VALUES (?,?,?,?,?,?,?,?,?);""",  (name[0], input_date, lista, sector, branch, dir_avk, 		   pe, ps, pb))
+				resp = db.execute("""INSERT INTO companies (symbol,  datum, list,  sector, branch, direktavkastning, pe, ps, pb) VALUES (?,?,?,?,?,?,?,?,?);""",
+                                                  (name[0], input_date, lista, sector, branch, dir_avk, pe, ps, pb))
 
 			else:
-				resp = db.execute("""UPDATE companies SET datum = ?,	list = ?,  sector = ?, branch = ?, direktavkastning = ?, pe = ?, ps = ?, pb = ? WHERE symbol = ? ;""",  (input_date, lista, sector, branch, dir_avk, pe, ps, pb, name[0]))
+				resp = db.execute("""UPDATE companies SET datum = ?, list = ?,  sector = ?, branch = ?, direktavkastning = ?, pe = ?, ps = ?, pb = ? WHERE symbol = ? ;""",
+                                                  (input_date, lista, sector, branch, dir_avk, pe, ps, pb, name[0]))
 				#print("Borsdata To late.")
 			temp = db.execute("SELECT * FROM transactions WHERE symbol=? AND datum=?",(name[0],input_date))
 			tt= temp.fetchall()
 			if len(tt) < 1:
 				close_price = ws.cell(row=ii, column = 14).value
-				resp = db.execute("""INSERT INTO transactions (symbol, datum, closeprice) 
-							VALUES (?,?,?);""", (name[0], input_date, close_price) )
+				resp = db.execute("""INSERT INTO transactions (symbol, datum, closeprice) VALUES (?,?,?);""",
+                                                  (name[0], input_date, close_price) )
 	else:
 		resp = db.execute("SELECT symbol from companies WHERE symbol=?",(name[0],))
 		#if len(resp) < 1:
@@ -91,10 +88,10 @@ def readFromXLSX(db,ORGname,ij,max_ant):
 				pass#print(tt)
 				#print("To late.")
 
-def tester(db):
-	#os.system("rm -f ekonomen.db")
-	db_ = createDatabase()
-	#db = SQL("sqlite:///ekonomen.db")
+def testeerr(db):
+	os.system("rm -f ekonomen_test.db")
+	db_ = createDatabase("ekonomen_test.db")
+	#db = SQL("sqlite:///ekonomen_test.db")
 	ij = 1
 
 	temp = db.execute("select * from transactions;")
@@ -126,7 +123,7 @@ def main():
 	#os.system("rm -f ekonomen.db")
 	resp = glob.glob("ekonomen.db")
 	if len(resp) < 1:
-		db_ = createDatabase()
+		db_ = createDatabase("ekonomen.db")
 	else:
 		db_ = sqlite3.connect("ekonomen.db")
 	db = db_.cursor()
