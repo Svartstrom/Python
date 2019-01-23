@@ -20,8 +20,8 @@ def Table_exists(f):
             kwargs['db'].execute(SQLinp)
         except:
             SQLinp = "CREATE TABLE "+kwargs['symbol']+" ('date' DATE PRIMARY KEY UNIQUE,'list' TEXT, 'sector' TEXT, 'branch' TEXT, 'direktavkastning' INTEGER, 'pe' INTEGER, 'ps' INTEGER,'pb'INTEGER,'openprice' INTEGER,'highprice'INTEGER,'lowprice'INTEGER, 'closeprice' INTEGER,'volume'INTEGER)"
-            print(kwargs['symbol'])
-            print(SQLinp)
+            #print(kwargs['symbol'])
+            #print(SQLinp)
             kwargs['db'].execute(SQLinp)
         return f(*args, **kwargs)
     return wraper
@@ -29,25 +29,26 @@ def Table_exists(f):
 @Table_exists
 def insertBD(input_date, trade_list, sector, branch, dir_avk, pe,ps,pb,close_price,symbol,db):
     SQLinp = "SELECT * FROM " + symbol + " WHERE date=?;"
-    temp = db.execute(SQLinp,(input_date,))
+    temp = db.execute(SQLinp,(input_date,)).fetchone()
     if temp:
         SQLinp = "UPDATE " + symbol + " SET list=?, sector=?, branch=?, direktavkastning=?, pe=?, ps=?, pb=?,closeprice=? WHERE date=?"
         db.execute(SQLinp,(trade_list,sector,branch,dir_avk,pe,ps,pb,close_price,input_date,))
     else:
-        SQLinp = "INSERT INTO " + symbol + " (datum, list,  sector, branch, direktavkastning, pe, ps, pb,closeprice) VALUES (?,?,?,?,?,?,?,?,?,?);"
+        SQLinp = "INSERT INTO " + symbol + " (date, list,  sector, branch, direktavkastning, pe, ps, pb,closeprice) VALUES (?,?,?,?,?,?,?,?,?);"
         db.execute(SQLinp,(input_date, trade_list, sector, branch, dir_avk, pe, ps, pb, close_price))
 
 @Table_exists
 def insertTrades(input_date,open_price,high_price,low_price,close_price,volume,symbol,db):
     SQLinp = "SELECT * FROM " + symbol + " WHERE date=?;"
-    temp = db.execute(SQLinp,(input_date,))
+    temp = db.execute(SQLinp,(input_date,)).fetchone()
     if temp:
         SQLinp = "UPDATE " + symbol + " SET openprice=?, highprice=?,lowprice=?,closeprice=?,volume=? WHERE date=?;"
         db.execute(SQLinp,(open_price,high_price,low_price,close_price,volume,input_date))
     else:
-        SQLinp = "INSERT INTO ? (datum,openprice,highprice,lowprice,closeprice,volume) VALUES (?,?,?,?,?,?)"
+        SQLinp = "INSERT INTO " + symbol + " (date,openprice,highprice,lowprice,closeprice,volume) VALUES (?,?,?,?,?,?)"
         db.execute(SQLinp,(input_date,open_price,high_price,low_price,close_price,volume))
-
+    if symbol == "_ACAD":
+        print("SQLinp: "+SQLinp+" "+str(input_date))#+" "+str(temp.fetchone()))
 # SELECT count(*) FROM sqlite_master WHERE type='table' AND name='table_name';
 def createDatabase(DBname):
     db_ = sqlite3.connect(DBname)
@@ -75,6 +76,7 @@ def readFromXLSX(db,ORGname,ij,max_ant):
         input_date = str(name[1])+"-"+str(name[2])+"-"+str(name[3])
         #Bolagsnamn	Info	Info	Info	Info	Info	Info		Info	Kursutveck.	Direktav.	P/E	P/S	P/B	Aktiekurs
         #		Land	Lista	Sektor	Bransch	Ticker	Instrument	Rapport	Utveck.  1 år	Senaste		Senaste	Senaste	Senaste	Senaste
+        print("INSERTING INTO "+name[0])
         for row in ws.iter_rows(min_row = 3, min_col=1, max_row=ws.max_row, max_col=ws.max_column):
             symbol = row[5].value.replace(" ","").replace("-","_").replace(".","_")
             symbol = "_"+symbol
@@ -90,10 +92,11 @@ def readFromXLSX(db,ORGname,ij,max_ant):
     elif name[0] == 'AAA':
         pass
     else:
+        print("INSERTING INTO "+name[0])
         #for row in ws.iter_rows(min_row = 3, min_col=1, max_row=ws.max_row, max_col=ws.max_col):
         for row in ws.iter_rows(min_row = 2, min_col=1, max_row=ws.max_row, max_col=ws.max_column):
-            print(name[0])
-            print(row[0].value)
+            #print(name[0])
+            #print(row[0].value)
             input_date  = row[0].value.date()
             open_price  = row[1].value
             high_price  = row[2].value
@@ -119,8 +122,18 @@ def main():
         readFromXLSX(db,ORGname,ij,len(full_list))
         ij+=1
         #os.system("rm -f " + ORGname)
-    db_.commit()
+    
+        db_.commit()
     db_.close()
+
+    db_ = sqlite3.connect("ekonomen.db")
+    db = db_.cursor()
+
+    t = db.execute("SELECT * from _ACAD;")
+    print(t)
+    print(t.fetchall())
+    
+
     
 if __name__ == "__main__":
     main()
