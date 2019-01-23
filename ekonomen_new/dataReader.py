@@ -76,7 +76,8 @@ def readFromXLSX(db,ORGname,ij,max_ant):
         #Bolagsnamn	Info	Info	Info	Info	Info	Info		Info	Kursutveck.	Direktav.	P/E	P/S	P/B	Aktiekurs
         #		Land	Lista	Sektor	Bransch	Ticker	Instrument	Rapport	Utveck.  1 år	Senaste		Senaste	Senaste	Senaste	Senaste
         for row in ws.iter_rows(min_row = 3, min_col=1, max_row=ws.max_row, max_col=ws.max_column):
-            symbol = row[5].value.replace(" ","")
+            symbol = row[5].value.replace(" ","").replace("-","_").replace(".","_")
+            symbol = "_"+symbol
             trade_list = row[2].value
             sector  = row[3].value
             branch  = row[4].value
